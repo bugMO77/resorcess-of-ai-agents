@@ -1,0 +1,537 @@
+أيوه، **كده فهمت هدفك الحقيقي**. أنت مش عايز Agent عنده شوية Skills وملفات يفتحها عند الطلب. أنت عايزه يبقى عنده **خبرة متراكمة ضخمة في كل vulnerability class**، بحيث الـ100 writeup مايبقوش مجرد ملفات مرمية في repo.
+
+والحل مش إنك تعمل يدويًا:
+
+```text
+100 writeups
+→ تقرأهم
+→ تلخصهم
+→ تعمل 50 ملف
+→ تكتب Skill
+```
+
+لكل bug. كده هتحتاج تتقاعد قبل ما تخلص. 😭
+
+## إحنا نعملها كـ Knowledge Pipeline
+
+لو عندك مثلًا **100 IDOR writeups**:
+
+```text
+100 Writeups
+      ↓
+Extraction
+      ↓
+Normalization
+      ↓
+Clustering
+      ↓
+Cross-source synthesis
+      ↓
+IDOR Knowledge Base
+      ↓
+IDOR Skill
+      ↓
+Agent Retrieval
+```
+
+والأهم: **الـAI هو اللي يعمل معظم الشغل ده.**
+
+---
+
+# 1. الـ100 writeups مش لازم يبقوا 100 summaries
+
+دي أول نقطة.
+
+لو عندنا:
+
+```text
+IDOR
+├── writeup 1
+├── writeup 2
+├── writeup 3
+...
+└── writeup 100
+```
+
+مش عايزين:
+
+```text
+idor-summary-001.md
+idor-summary-002.md
+...
+idor-summary-100.md
+```
+
+وبعدين الـAgent يغرق فيهم.
+
+نريد استخراج **patterns**.
+
+مثلاً الـ100 writeups ممكن ينتجوا:
+
+```text
+IDOR
+├── object identifiers
+├── horizontal access
+├── vertical access
+├── alternate endpoints
+├── HTTP method variations
+├── GraphQL objects
+├── UUID enumeration
+├── indirect references
+├── nested resources
+├── bulk operations
+├── export/download
+├── race conditions
+└── workflow abuse
+```
+
+هنا الـ100 مصدر أصبحوا **knowledge density** عالية.
+
+---
+
+# 2. نعملها على مرحلتين
+
+### المرحلة A: Source Extraction
+
+كل writeup يتحول إلى structured record.
+
+مثلاً:
+
+```yaml
+source: WRITEUP-037
+vulnerability: IDOR
+
+context:
+  application: SaaS
+  endpoint: /api/projects/{id}
+
+attack_surface:
+  - REST API
+
+technique:
+  - object_id_substitution
+
+preconditions:
+  - authenticated_user
+  - second_account
+
+impact:
+  - unauthorized_read
+
+interesting_detail:
+  "Authorization was checked on project listing but not direct object access"
+
+false_positive:
+  ...
+
+evidence:
+  ...
+
+tags:
+  - idor
+  - api
+  - authorization
+```
+
+**وده الـAI يعمله.**
+
+مش أنت.
+
+---
+
+# 3. بعدها Synthesis
+
+لما يكون عندنا:
+
+```text
+WRITEUP-001 → structured
+WRITEUP-002 → structured
+...
+WRITEUP-100 → structured
+```
+
+نشغل Agent ثاني عليه:
+
+> Analyze all extracted cases. Identify recurring attack patterns, rare techniques, prerequisites, validation methods, false positives, impact patterns, and contradictions. Do not invent techniques not supported by the sources.
+
+فينتج:
+
+```text
+IDOR Knowledge Base
+```
+
+مثلاً:
+
+```text
+patterns/
+├── direct-object-access.md
+├── nested-resource-access.md
+├── alternate-methods.md
+├── bulk-endpoints.md
+├── export-download.md
+└── graphql.md
+```
+
+---
+
+# 4. وبعدين نعمل شيء أهم: Frequency + Rarity
+
+مش كل pattern متساوي.
+
+مثلاً:
+
+```text
+Pattern A
+Appeared: 43/100
+
+Pattern B
+Appeared: 17/100
+
+Pattern C
+Appeared: 3/100
+```
+
+الـAgent يعرف:
+
+> A = common pattern
+
+لكن:
+
+> C = rare edge case
+
+وده **مهم جدًا للـbug bounty agent**.
+
+لأن الـAgent العادي غالبًا يختبر:
+
+```text
+GET /users/123
+→ change 123 to 124
+```
+
+وينتهي.
+
+لكن الـknowledge base ممكن تعلمه:
+
+```text
+"Some IDOR cases appeared through:
+- exports
+- nested resources
+- alternate HTTP methods
+- bulk endpoints
+- asynchronous jobs
+- GraphQL
+- downloadable assets"
+```
+
+وهنا تبدأ قيمة الـ100 writeup فعلًا.
+
+---
+
+# 5. وبعدها Skill مختلفة تمامًا
+
+الـKnowledge تقول:
+
+> إيه الأنماط اللي وجدناها؟
+
+الـSkill تقول:
+
+> إزاي أختبرها؟
+
+مثلاً:
+
+```text
+IDOR Skill
+```
+
+تتولد من knowledge:
+
+```text
+1. Identify object references
+2. Map object access paths
+3. Establish two identities
+4. Test horizontal access
+5. Test vertical access
+6. Test alternate methods
+7. Test nested resources
+8. Test bulk operations
+9. Test exports/downloads
+10. Test asynchronous references
+11. Test GraphQL object access
+12. Validate impact
+13. Check for false positives
+```
+
+وده **مش مجرد تلخيص للـ100 writeup**.
+
+ده synthesis + proceduralization.
+
+---
+
+# 6. طيب تعمل ده مع كل Bug؟
+
+**لا تعملها يدويًا.**
+
+نحن نبني Pipeline واحدة:
+
+```text
+                     SOURCES
+                        │
+          ┌─────────────┼─────────────┐
+          ▼             ▼             ▼
+       Writeups       Reports       Research
+          │             │             │
+          └─────────────┼─────────────┘
+                        ▼
+                 SOURCE EXTRACTOR
+                        │
+                        ▼
+               STRUCTURED CASES
+                        │
+                        ▼
+                  DEDUP / CLUSTER
+                        │
+                        ▼
+               PATTERN ANALYZER
+                        │
+                        ▼
+              KNOWLEDGE SYNTHESIS
+                        │
+              ┌─────────┴─────────┐
+              ▼                   ▼
+        KNOWLEDGE BASE        SKILL BUILDER
+              │                   │
+              └─────────┬─────────┘
+                        ▼
+                     AGENT
+```
+
+وبالتالي لما تضيف:
+
+```text
+100 IDOR
+150 BAC
+80 Auth
+120 Business Logic
+70 SSRF
+...
+```
+
+مش بتعيد اختراع النظام.
+
+---
+
+# 7. بس فيه مشكلة مهمة
+
+أنا **مش عايز نخلي الـAI يقرأ 100 writeups مرة واحدة ويقول "دي المعرفة"**.
+
+لأنك هتواجه:
+
+* context limits
+* information loss
+* hallucinated synthesis
+* dominant patterns hiding rare patterns
+* duplicate techniques
+* conflicting claims
+
+الأفضل:
+
+```text
+100 sources
+ ↓
+chunks/batches
+ ↓
+structured extraction
+ ↓
+all extracted cases
+ ↓
+synthesis
+ ↓
+validation pass
+```
+
+مثلاً:
+
+```text
+100 writeups
+→ 10 batches × 10
+→ 10 extraction outputs
+→ synthesis
+→ verification
+```
+
+وده scalable جدًا.
+
+---
+
+# 8. والأجمل: نقدر نخلي الـAgent نفسه يبني الـKnowledge Base
+
+أنت تعمل مثلاً:
+
+```text
+knowledge/raw/
+```
+
+وتحط المصادر.
+
+ثم command:
+
+```text
+/hunt-learn idor
+```
+
+فيعمل:
+
+```text
+1. Find IDOR sources
+2. Extract cases
+3. Normalize metadata
+4. Detect duplicates
+5. Cluster patterns
+6. Generate synthesis
+7. Generate edge cases
+8. Generate testing checklist
+9. Generate false-positive checklist
+10. Update IDOR knowledge
+11. Update IDOR skill
+12. Run consistency check
+```
+
+**وأنت تراجع الناتج بدل ما تكتبه.**
+
+وده فرق ضخم.
+
+---
+
+# 9. وفيه طبقة أريدها بشدة في مشروعك
+
+## Evidence Ledger
+
+كل معلومة مهمة لازم نعرف مصدرها.
+
+مثلاً:
+
+```markdown
+## Pattern: Authorization Missing on Nested Resources
+
+Observed in:
+- WRITEUP-013
+- WRITEUP-027
+- REPORT-091
+
+Confidence: High
+
+Evidence:
+- WRITEUP-013: ...
+- WRITEUP-027: ...
+```
+
+لو الـAgent بعد شهر قال:
+
+> "Nested resources are commonly vulnerable..."
+
+نقدر نعرف:
+
+```text
+ليه؟
+مين قال كده؟
+كام حالة؟
+إيه الأدلة؟
+```
+
+مش مجرد:
+
+> Trust me bro, AI.
+
+---
+
+# 10. وده يجاوب سؤالك "هل ده هياخد وقت؟"
+
+**في البداية نعم، لكن مش الوقت اللي أنت متخيله.**
+
+أنت لا تعمل:
+
+```text
+100 writeups × manual analysis
+```
+
+أنت تعمل:
+
+```text
+100 sources
+     ↓
+automated extraction
+     ↓
+AI synthesis
+     ↓
+human review
+```
+
+دورك يصبح:
+
+### أنت
+
+* تختار المصادر
+* تحدد quality
+* تراجع synthesis
+* تصحح الأخطاء المهمة
+* تعتمد المعرفة
+
+### AI
+
+* يقرأ
+* يستخرج
+* يصنف
+* يقارن
+* يجمع patterns
+* يكتشف duplicates
+* يبني drafts
+* يقترح skills
+* يربط المصادر
+
+وده بالضبط المكان اللي **AI يوفر عليك وقت حقيقي** بدل ما يبقى مجرد آلة تلخيص.
+
+---
+
+## وأنا شايف نعمل الـKnowledge لكل vulnerability بالشكل ده
+
+```text
+concepts/
+└── idor/
+    │
+    ├── overview.md
+    ├── patterns.md
+    ├── attack-surfaces.md
+    ├── scenarios.md
+    ├── edge-cases.md
+    ├── false-positives.md
+    ├── validation.md
+    ├── impact.md
+    ├── methodology.md
+    ├── sources.md
+    └── skill.md
+```
+
+وبعدين:
+
+```text
+100 writeups
+       ↓
+      IDOR
+       ↓
+┌────────────────────────────┐
+│ Knowledge                  │
+│ patterns                   │
+│ edge cases                 │
+│ scenarios                  │
+│ validation                 │
+│ false positives            │
+└─────────────┬──────────────┘
+              ↓
+         IDOR Skill
+              ↓
+           Agent
+```
+
+**وده هو "التدريب" اللي أنصح به للـAgent في مشروعنا.** مش Fine-tuning للـmodel، بل بناء **domain-specific knowledge + retrieval + procedural skills + evidence-backed memory**.
+
+وبعد ما نثبت الـpipeline على **Vulnerability واحدة فقط**، نقدر نكرره على باقي الـclasses. دي أهم نقطة، لأننا لا نريد أن نقضي أسبوعين نبني مصنعًا قبل أن نعرف هل المصنع يصنع شيئًا مفيدًا أصلًا.
