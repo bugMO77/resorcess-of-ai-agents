@@ -534,4 +534,420 @@ concepts/
 
 **وده هو "التدريب" اللي أنصح به للـAgent في مشروعنا.** مش Fine-tuning للـmodel، بل بناء **domain-specific knowledge + retrieval + procedural skills + evidence-backed memory**.
 
+
+
+
+آه، ودي نقطة مهمة جدًا. **مفيش رقم سحري زي "بعد 10,000 writeup الـAgent يبقى متعلم خلاص"**. في نوعين مختلفين من الحدود هنا، وخلطهم بيعمل نظام مضحك جدًا: Agent عنده 50 ألف ملف لكنه لسه بيسأل "إيه هو IDOR؟" 😭
+
+## 1. هل فيه حد أقصى لكمية الـKnowledge؟
+
+عمليًا، **مش لازم**.
+
+ممكن يكون عندك:
+
+```text
+IDOR              500 writeups
+Broken Access     800
+Business Logic    400
+SSRF               300
+XSS                700
+Auth               600
+...
+```
+
+والـAgent **مش هيحط الـ800 writeup كلها في الـcontext**.
+
+هيبحث فقط عن الجزء المرتبط بالمشكلة الحالية.
+
+يعني:
+
+```text
+Knowledge Base
+      │
+      │  آلاف / عشرات آلاف المصادر
+      ▼
+  Retrieval
+      │
+      │  relevant 10-30 pieces
+      ▼
+    Agent
+```
+
+فالحد الحقيقي مش "عدد الملفات"، وإنما **جودة الـretrieval وجودة الـknowledge نفسها**.
+
+---
+
+# 2. لكن فيه نقطة أهم: diminishing returns
+
+لو عملنا:
+
+```text
+10 writeups
+→ معرفة أساسية
+
+50
+→ patterns كثيرة
+
+100
+→ edge cases جيدة
+
+300
+→ تغطية قوية
+
+1000
+→ غالبًا بدأنا نشوف تكرار كبير
+```
+
+بعد نقطة معينة، إضافة writeup رقم 1001 مش بالضرورة تضيف معرفة جديدة.
+
+ممكن تكون:
+
+```text
+1000 sources
+→ 120 unique patterns
+
+5000 sources
+→ 145 unique patterns
+```
+
+يعني أنت أضفت **4000 مصدر** لكن حصلت على 25 pattern جديدة فقط.
+
+لذلك النظام لازم يعرف:
+
+> **Novelty > Quantity**
+
+مش:
+
+> "هات أكبر عدد PDFs يا عبد."
+
+---
+
+# 3. لذلك أنا عايز الـAgent يتعلم على مستويات
+
+### Level 1: Fundamentals
+
+يعرف:
+
+```text
+What is IDOR?
+What is authorization?
+What is horizontal access?
+What is vertical access?
+```
+
+### Level 2: Common patterns
+
+```text
+object substitution
+alternate endpoint
+method switching
+nested resources
+exports
+downloads
+```
+
+### Level 3: Variations
+
+```text
+REST
+GraphQL
+WebSocket
+mobile API
+async jobs
+bulk operations
+```
+
+### Level 4: Edge cases
+
+هنا تبدأ الـwriteups الكثيرة تفيد جدًا:
+
+```text
+weird state transitions
+caching behavior
+alternate identifiers
+multi-step workflows
+cross-tenant references
+```
+
+### Level 5: False positives
+
+وده مهم جدًا للـhunting:
+
+```text
+Why this looks vulnerable
+Why it isn't
+What evidence is insufficient
+What validation is required
+```
+
+### Level 6: Judgment
+
+مش "هل فيه IDOR؟"
+
+لكن:
+
+```text
+Is this actually unauthorized?
+Which boundary was crossed?
+What actor should be able to access it?
+Can impact be demonstrated?
+What additional tests distinguish
+a real issue from an intended behavior?
+```
+
+وده المستوى اللي نريد الـAgent يوصل له.
+
+---
+
+# 4. إمتى نقول "كفاية"؟
+
+مش لما نوصل لرقم معين.
+
+نستخدم **Coverage / Saturation**.
+
+مثلاً لكل vulnerability:
+
+```text
+IDOR
+────────────────────────────
+
+Sources:                 327
+Unique patterns:          84
+Attack surfaces:          19
+Edge cases:               37
+False-positive rules:     24
+Validation scenarios:     61
+
+Novelty from last 50:
+                         3.2%
+```
+
+لو آخر 50 writeup بيضيفوا:
+
+```text
+3% new knowledge
+```
+
+ممكن نقول:
+
+> الـknowledge الحالية وصلت لمرحلة saturation جيدة.
+
+مش معناها توقف للأبد.
+
+أي writeup جديد ومميز يدخل للنظام ويعمل update.
+
+---
+
+# 5. والأهم: الـAgent نفسه لازم يعرف إنه **مش عارف**
+
+دي من أهم الحاجات اللي عايزها في architecture بتاعنا.
+
+مثلاً يسأل:
+
+> هل هذا pattern معروف؟
+
+والـknowledge تقول:
+
+```text
+Evidence:
+7 sources
+
+Confidence:
+High
+```
+
+لكن لو:
+
+```text
+Evidence:
+1 weak source
+
+Confidence:
+Low
+```
+
+الـAgent **ماينفعش يحولها لحقيقة**.
+
+يبقى:
+
+```text
+Known
+Probable
+Rare
+Unverified
+Unknown
+```
+
+وده يمنع الـAI من اختراع "techniques" من عنده.
+
+---
+
+# 6. وده يخلي التعلم مستمر
+
+مش:
+
+```text
+TRAIN AGENT
+      ↓
+DONE
+```
+
+لكن:
+
+```text
+                ┌─────────────┐
+                │   Sources   │
+                └──────┬──────┘
+                       ↓
+                 Extraction
+                       ↓
+                 Knowledge
+                       ↓
+                    Agent
+                       ↓
+                    Hunt
+                       ↓
+                  Findings
+                       ↓
+                 New Lessons
+                       ↓
+                 Knowledge
+                       ↑
+                       └────────
+```
+
+كل hunting session ممكن تضيف حاجة.
+
+مثلاً الـAgent يكتشف:
+
+```text
+"الـendpoint ده كان ظاهر كـIDOR
+لكن authorization بيتم في endpoint مختلف
+بعد request ثانية."
+```
+
+دي معرفة جديدة.
+
+تدخل:
+
+```text
+knowledge/patterns/
+```
+
+وبالتالي **خبرته تزيد مع الوقت**.
+
+---
+
+# 7. فيه حد آخر مهم جدًا: Context Window
+
+ده مختلف تمامًا.
+
+حتى لو عندك:
+
+```text
+100,000 writeups
+```
+
+الـAgent مش هيقرأهم كلهم في prompt.
+
+الـretrieval يعمل:
+
+```text
+100,000 sources
+       ↓
+query
+       ↓
+candidate retrieval
+       ↓
+reranking
+       ↓
+5-20 relevant chunks
+       ↓
+context
+```
+
+فأنت تفصل:
+
+**Knowledge capacity**
+
+عن:
+
+**Context capacity**
+
+ودي من أهم قرارات architecture عندنا.
+
+---
+
+# 8. وأنا أقترح نعمل لكل vulnerability "Knowledge Maturity"
+
+مش ranking للـvulnerabilities، لأ. ده **قياس اكتمال قاعدة المعرفة نفسها**.
+
+مثلاً:
+
+```text
+IDOR Knowledge
+
+[██████████████████░░] 89%
+
+Fundamentals       ✓
+Patterns           ✓
+Attack surfaces    ✓
+Scenarios          ✓
+Edge cases         ✓
+False positives    ✓
+Validation         ✓
+Rare cases         △
+Recent research    △
+```
+
+الـ89% هنا مش "IDOR صعب 89%"، وإنما:
+
+> نسبة تغطية الـknowledge dimensions اللي حددناها.
+
+---
+
+## الخلاصة
+
+**نقدر نفضل نغذي النظام بمصادر لسنين.**
+
+لكن مش هدفنا:
+
+> "أكبر عدد writeups ممكن."
+
+هدفنا:
+
+> **أكبر قدر من المعرفة الجديدة، الموثقة، القابلة للاسترجاع، والقابلة للتحويل إلى منهجية اختبار.**
+
+وعشان كده أنا شايف إن الـpipeline النهائي لازم يكون:
+
+```text
+SOURCE
+  ↓
+EXTRACT
+  ↓
+NORMALIZE
+  ↓
+DEDUP
+  ↓
+CLUSTER
+  ↓
+SYNTHESIZE
+  ↓
+VALIDATE
+  ↓
+KNOWLEDGE
+  ↓
+SKILL
+  ↓
+AGENT
+  ↓
+HUNT
+  ↓
+LESSON
+  ↓
+KNOWLEDGE UPDATE
+```
+
+**ده هو الأساس اللي يستاهل نبني عليه المشروع كله.** وبعدها مش هتكون كل مرة محتاج "ندرب الـAgent من الصفر". أنت بتبني له **نظام ذاكرة وخبرة يتراكم**.
+
 وبعد ما نثبت الـpipeline على **Vulnerability واحدة فقط**، نقدر نكرره على باقي الـclasses. دي أهم نقطة، لأننا لا نريد أن نقضي أسبوعين نبني مصنعًا قبل أن نعرف هل المصنع يصنع شيئًا مفيدًا أصلًا.
