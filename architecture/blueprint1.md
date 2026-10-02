@@ -985,3 +985,94 @@ Methodology improvement
 
 [1]: https://opencode.ai/docs/skills?utm_source=chatgpt.com "Agent Skills | OpenCode"
 [2]: https://opencode.ai/docs/agents/?utm_source=chatgpt.com "Agents | OpenCode"
+
+
+# راجعت الـ Blueprint مقابل الـ 12 مصدر (v6 rules) - النتيجة: قوي جداً، بس فيه فجوات وتكرارات 🎯
+
+## ✅ الموجود والصح (أغلب الصورة):
+
+- فصل knowledge / concepts / memory / target state → **ممتاز ومطابق تماماً للـ sources**
+- Proof Gate + FP Gate + Validator + Human → ✓
+- Program Knowledge Pack في `testing/<target>/research/` → ✓
+- Specialized Detector منفصل عن Generative Agent → ✓
+- Identities كملفات منفصلة (user-a/user-b/admin) → ✓
+- Finding pipeline (candidate → validation → confirmed → poc) → ✓
+- Architecture contracts + FP DB + prompt library + coverage → ✓
+- "إيه اللي مش موجود" (الـ ❌ list) → مضبوط حرفياً
+
+---
+
+## ❌ ناقص (من المحتوى اللي بعتهولي - موجديش في الـ Blueprint):
+
+### 1. **Subdomain Change Monitoring / Scheduled Recon**
+من البوست الأول - مش مجرد recon skill:
+```
+monitoring/ أو automation/
+├── schedule (cron)
+├── subdomain snapshot (status/size/tech/title)
+├── diff engine (قديم vs جديد)
+└── notify (new asset / changed content / رجوع subdomain للحياة)
+```
+مفيش أي مكان في الـ blueprint بيلم ده. الـ `update.md` command مش كفاية.
+
+### 2. **Run Comparison (non-determinism)**
+اتذكرت في نص الـ learning engine بس **مفيش مكان فعلي ليها**:
+```
+testing/<target>/runs/
+├── run-001/ (coverage snapshot + findings + misses)
+├── run-002/
+└── comparison.md
+```
+مبدأ "شغل نفس الـ target 3 مرات وقارن الـ misses" محتاج home في الـ tree.
+
+### 3. **OOB / Async Events**
+الـ interactsh/callbacks والـ async validation (callback يوصل بعد 5 دقايق ويتربط بالـ solver) - مذكورين في runtime بالاسم بس، مفيش:
+```
+testing/<target>/oob/
+├── callbacks/ (مع identifiers زي /xxe1)
+└── correlation.md
+```
+
+### 4. **Regression Testing Bot**
+من فيديو Hermes + الـ micro-agents - مش موجود خالص:
+```
+testing/<target>/findings/<id>/regression.md
+(known fix → bypass attempts → periodic check)
+```
+
+### 5. **Session Search**
+الـ skill اللي في الـ blueprint اسمها `session-search` بس وصفها بقى Identity Ledger - **دي حاجتين مختلفين**. الأصل: grep/rg على session logs القديمة ("اتكلمنا امبارح عن YAML parsers فين؟"). الـ identity ledger محتاجة skill منفصلة (اقترح `identities.md`).
+
+---
+
+## ⚠️ مشاكل داخلية (ضايف حاجة أو مكرر):
+
+### 1. **تكرار model-routing**
+موجود في `runtime/model-routing.md` **وفي** `architecture/model-routing.md`. واحدم وخلي التاني يشاور عليه.
+
+### 2. **تكرار retrieval**
+`retrieval/` (مستوى root) + `learning_engine/retrieval/` - **نفترض مصدر واحد للحقيقة**. اقترح: `retrieval/` هو الواجهة، والـ learning_engine يشاور عليها.
+
+### 3. **`learning_engine/graph/` - خطورة اختراع**
+كل المصادر قالتت إن الـ knowledge graph **غير محدد التفاصيل** (TODO/research). وجود `builder.py` جاهز في الـ blueprint هيخليك تبدأ تبني حاجة محدش وصفها. اقترح: `graph/` → `research/` جوه الـ learning_engine، أو TODO file.
+
+### 4. **`memory/targets/` وصف غلط**
+الوصف بيقول "Lessons خاصة بنوع vulnerability" بس الاسم "targets" - خلط. أو سمّها `memory/lessons/` أو صحح الوصف.
+
+### 5. **ملف scripts بلا امتدادات**
+`fetch` / `process` / `index` / `learn` - محددش `.sh` ولا `.py` ومفيش توضيح (directory ولا file).
+
+---
+
+## 📊 الحكم النهائي:
+
+| المعيار | الحالة |
+|---|---|
+| تغطية المصادر | ~90% |
+| Missing | 5 مكونات (فوق) |
+| تكرارات | 2 |
+| مخاطر over-engineering | learning_engine/graph + scoring |
+
+**الـ Blueprint ممتاز كهيكل نهائي** - بس بعد إضافة الـ 5 ناقصين وتظبط التكرارات، اعمل نسخة **v2 من الـ tree** ونعتبرها الـ canonical.
+
+**عايزني أطلعلك النسخة المعدلة كاملة (بالإضافات والتصحيحات) ولا هتعدلها بنفسك ونبص فيها تاني؟** 🛠️
