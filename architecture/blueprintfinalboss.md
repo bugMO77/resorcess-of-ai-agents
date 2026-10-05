@@ -1,30 +1,36 @@
-تمام. دي **النسخة النهائية الـ Canonical Blueprint** بعد دمج مراجعة الـ v2، وإضافة كل الـ 5 الناقصين، وتصحيح التكرارات، وإبقاء الحاجات غير المحددة كـ research بدل ما نخترع لها implementation. اعتمد دي كـ **source of truth** للتنفيذ. الملف المرفوع نفسه يثبت معظم الهيكل والتغييرات الأساسية. 
+معاك حق، وأنا كنت بتعامل مع الـ **decision sheet** كأننا خلصنا تحديث الـ Blueprint نفسه، وده مش صحيح. إحنا كان عندنا **Final Canonical Blueprint**، وبعده ظهرت إضافات جديدة من مقارنة `Agentic-Bug-Hunter`، لكن ما عملناش **نسخة Blueprint نهائية مدموجة** بكل الإضافات.
 
-# 🧠 Godbug / Hunting System — Final Canonical Blueprint
+خلينا نقفل الموضوع صح دلوقتي.
+
+# 🧠 Buggy — Final Canonical Blueprint v3
+
+دي النسخة اللي تعتمدها من هنا.  
+**الـ architecture الأساسي ثابت**، والإضافات الجديدة اتدمجت داخله.
 
 ```text
-hunting/
+buggy/
 │
 ├── README.md
-│   # تعريف المشروع، الهدف، طريقة التشغيل العامة.
-│   # لا يحتوي methodology تفصيلية أو target-specific state.
+│   # Project overview, purpose, high-level workflow.
+│   # No detailed methodology.
 │
 ├── AGENTS.md
-│   # Constitution:
-│   # scope، workflow، state، evidence، validation،
-│   # human-in-the-loop، boundaries، non-destructive defaults.
-│   # قصير ومركز، وليس encyclopedia.
+│   # Constitution / persistent steering.
+│   # Scope, workflow, state, evidence, validation,
+│   # human-in-the-loop, safety, non-destructive defaults.
 │
 ├── prioritization.md
-│   # impact / likelihood / attack surface / confidence / effort.
-│   # لا يتم استنتاج severity من vulnerability type فقط.
+│   # Hunting prioritization:
+│   # impact / likelihood / attack surface /
+│   # confidence / effort / business context.
+│   # Severity is never inferred from vulnerability type alone.
 │
 ├── opencode.json
-│   # OpenCode runtime configuration:
-│   # MCP servers، permissions، agents، models/defaults.
+│   # OpenCode runtime configuration.
+│   # MCP, permissions, models/defaults, agent configuration.
 │
 ├── package.json
-│   # Runtime dependencies عند الحاجة.
+│   # Runtime dependencies where needed.
 │
 │
 ├── .opencode/
@@ -33,114 +39,127 @@ hunting/
 │   │   │
 │   │   ├── scope-bootstrap/
 │   │   │   └── SKILL.md
-│   │   │      # target initialization:
+│   │   │      # Initialize target:
 │   │   │      # scope → identities → state → coverage → gaps
 │   │   │
 │   │   ├── program-research/
 │   │   │   └── SKILL.md
 │   │   │      # Research Mode:
-│   │   │      # reports / writeups / technologies /
-│   │   │      # business / program intelligence → hypotheses
+│   │   │      # program intelligence → hypotheses
 │   │   │
 │   │   ├── recon/
 │   │   │   └── SKILL.md
-│   │   │      # asset discovery، DNS، HTTP، crawling،
-│   │   │      # ports، technology discovery
+│   │   │      # Assets / DNS / HTTP / crawling /
+│   │   │      # ports / technologies
 │   │   │
 │   │   ├── js-discovery/
 │   │   │   └── SKILL.md
-│   │   │      # JS discovery / download فقط
-│   │   │      # micro-skill
+│   │   │      # Discover/download JS only.
 │   │   │
 │   │   ├── js-analyze/
 │   │   │   └── SKILL.md
-│   │   │      # sources / sinks / endpoints / secrets /
-│   │   │      # auth logic / interesting flows
+│   │   │      # sources / sinks / endpoints /
+│   │   │      # auth logic / feature flags / flows
 │   │   │
 │   │   ├── identities/
 │   │   │   └── SKILL.md
-│   │   │      # identity/session ledger:
+│   │   │      # Identity/session ledger:
 │   │   │      # accounts ↔ requests ↔ authorization context
 │   │   │
 │   │   ├── session-search/
 │   │   │   └── SKILL.md
-│   │   │      # grep/rg على session logs والـ historical context
-│   │   │      # "اتكلمنا قبل كده عن X فين؟"
+│   │   │      # Historical/session search.
 │   │   │
 │   │   ├── validator/
 │   │   │   └── SKILL.md
-│   │   │      # Proof Gate + FP Gate + Evidence +
-│   │   │      # skeptical validation + chaining validation
+│   │   │      # Proof Gate + 7-question validation gate +
+│   │   │      # FP analysis + evidence + skeptical validation
 │   │   │
 │   │   ├── report-writer/
 │   │   │   └── SKILL.md
-│   │   │      # validated finding → structured report
+│   │   │      # Validated finding → structured report
 │   │   │
 │   │   ├── regression/
 │   │   │   └── SKILL.md
-│   │   │      # known fix → bypass attempts → periodic checks
+│   │   │      # Known fix → retest → bypass → regression
 │   │   │
 │   │   ├── xss/
 │   │   │   └── SKILL.md
-│   │   │      # discovery → context → probes →
+│   │   │      # Discovery → context → probes →
 │   │   │      # browser proof → evidence
 │   │   │
 │   │   └── access-control/
 │   │       └── SKILL.md
-│   │          # IDOR / BAC / auth boundaries /
-│   │          # cross-account / ownership
+│   │          # IDOR / BAC / ownership /
+│   │          # horizontal / vertical / cross-account
 │   │
 │   ├── agents/
-│   │   # Project-specific OpenCode agents.
-│   │   # يبدأ فارغًا.
-│   │   # نضيف Solver / Validator / Coordinator عند الحاجة الفعلية.
-│   │   # التصميم يستوعب عددًا قليلًا من المتخصصين، وليس agent لكل vuln.
+│   │   # Intentionally sparse.
+│   │   # Few agents only when isolated context is justified.
+│   │   # No agent-per-vulnerability.
 │   │
 │   └── commands/
 │       ├── hunt.md
-│       │   # focused hunting loop
+│       │   # Focused hunting loop
+│       │
 │       ├── recon.md
-│       │   # recon workflow
+│       │   # Recon workflow
+│       │
 │       ├── monitor.md
-│       │   # monitoring cycle
+│       │   # Monitoring cycle
+│       │
 │       ├── update.md
-│       │   # state / briefing / lessons refresh
+│       │   # State / briefing / memory refresh
+│       │
 │       ├── validate.md
-│       │   # candidate/finding validation
+│       │   # Candidate/finding validation
+│       │
 │       ├── report.md
-│       │   # confirmed finding → report
+│       │   # Confirmed finding → report
+│       │
 │       ├── research.md
-│       │   # program Research Mode
+│       │   # Program Research Mode
+│       │
 │       ├── understand.md
-│       │   # application understanding
+│       │   # Application understanding
+│       │
 │       ├── compare-runs.md
-│       │   # run comparison + miss analysis
-│       └── mindmap.md
-│           # hosts / features / endpoints / trust relationships
+│       │   # Run comparison + miss analysis
+│       │
+│       ├── mindmap.md
+│       │   # Hosts / features / endpoints / relationships
+│       │
+│       ├── scope-check.md
+│       │   # Fast in-scope / out-of-scope /
+│       │   # third-party / unknown decision
+│       │
+│       ├── triage.md
+│       │   # Fast go/no-go candidate triage
+│       │
+│       └── pickup.md
+│           # Resume previous work:
+│           # untested → partial → unresolved
 │
 │
 ├── automation/
-│   # Continuous recon/change monitoring.
-│   # ليس autonomous hunting.
 │   │
 │   ├── README.md
-│   │   # فلسفة التشغيل:
-│   │   # monitor → diff → notify
-│   │   # auto-scan لكل asset جديد ليس default.
+│   │   # Monitor → snapshot → diff → notify.
+│   │   # Not autonomous forever-hunting.
 │   │
 │   ├── monitor.sh
-│   │   # scheduler/cron entrypoint
+│   │   # Scheduler entrypoint
 │   │
 │   ├── snapshot.py
-│   │   # subdomain/asset snapshot:
+│   │   # Asset state:
 │   │   # status / size / title / technology / metadata
 │   │
 │   ├── diff.py
-│   │   # previous state vs current state:
-│   │   # new asset / changed content / dead→alive / new URLs
+│   │   # New asset / changed content /
+│   │   # dead→alive / new URLs
 │   │
 │   ├── notify.py
-│   │   # local / Telegram / other notification layer
+│   │   # Notification layer
 │   │
 │   └── state/
 │       └── <root-domain>/
@@ -149,27 +168,26 @@ hunting/
 │
 │
 ├── knowledge/
-│   # External knowledge.
-│   # كل مصدر يحتفظ بـ provenance / source URL / metadata.
+│   # External knowledge / source material.
+│   # Every source retains provenance / URL / metadata.
 │   │
 │   ├── writeups/
 │   ├── reports/
 │   ├── blogs/
-│   ├── posts/
 │   ├── tips-tricks/
 │   ├── research/
 │   ├── docs/
-│   ├── podcasts/
-│   ├── videos/
 │   │
 │   └── processed/
 │       # Structured extraction:
-│       # patterns / cases / techniques / prerequisites /
-│       # validation / impact / FP / provenance
+│       # patterns / cases / techniques /
+│       # prerequisites / validation / impact /
+│       # false positives / provenance
 │
 │
 ├── concepts/
-│   # Synthesized knowledge بعد دمج مصادر متعددة.
+│   # Synthesized knowledge.
+│   # Derived from multiple sources / validated understanding.
 │   │
 │   ├── methodology/
 │   ├── heuristics/
@@ -183,94 +201,86 @@ hunting/
 │   │   │   ├── false-positives.md
 │   │   │   ├── validation.md
 │   │   │   └── sources.md
+│   │   │
 │   │   ├── xss/
+│   │   │   ├── methodology.md
+│   │   │   ├── patterns.md
+│   │   │   ├── scenarios.md
+│   │   │   ├── edge-cases.md
+│   │   │   ├── false-positives.md
+│   │   │   ├── validation.md
+│   │   │   └── sources.md
+│   │   │
 │   │   └── access-control/
+│   │       ├── methodology.md
+│   │       ├── patterns.md
+│   │       ├── scenarios.md
+│   │       ├── edge-cases.md
+│   │       ├── false-positives.md
+│   │       ├── validation.md
+│   │       └── sources.md
 │   │
 │   ├── attack-patterns/
-│   │   # cross-vulnerability patterns
-│   │
 │   ├── false-positives/
-│   │   # known misleading signals / non-issues
-│   │
 │   └── prioritization/
-│       # prioritization heuristics
 │
 │
 ├── memory/
-│   # What OUR actual hunts taught the system.
-│   # ليست external knowledge.
+│   # Lessons learned from OUR real hunts.
 │   │
 │   ├── FALSE_POSITIVE_DB.md
-│   │   # false positives from real hunting
+│   │   # Actual false-positive patterns
 │   │
 │   ├── patterns.md
-│   │   # patterns validated by our own experiments
+│   │   # Patterns validated through experience
 │   │
 │   ├── methodology.md
-│   │   # operational lessons / process improvements
+│   │   # Process improvements
 │   │
 │   ├── report-lessons.md
-│   │   # accepted / rejected / weak report lessons
+│   │   # Accepted / rejected / weak reports
 │   │
 │   ├── CONTEXT_LEDGER.md
-│   │   # persistent decisions + important context
+│   │   # Persistent system/hunting context
 │   │
 │   └── lessons/
-│       # reusable lessons extracted from actual work
-│       ├── idor.md
-│       ├── xss.md
-│       └── ...
+│       # Reusable learned lessons
 │
 │
 ├── learning_engine/
-│   # Convert source material + actual hunt outcomes
-│   # into structured learning signals.
 │   │
 │   ├── engine.py
-│   │   # public orchestration/API
+│   │   # Learning orchestration
 │   │
 │   ├── core/
 │   │   ├── config.py
 │   │   ├── schema.py
-│   │   │   # sources / cases / findings / lessons schemas
 │   │   ├── validation.py
-│   │   │   # structural + quality validation
 │   │   └── storage.py
 │   │
 │   ├── ingestion/
 │   │   ├── finding.py
-│   │   │   # findings → learning signals
 │   │   └── triage.py
-│   │       # decide what is worth learning from
 │   │
 │   ├── analytics/
 │   │   └── patterns.py
-│   │       # extract patterns from hunting history
 │   │
 │   ├── run_comparison/
 │   │   ├── compare.py
-│   │   │   # Run1 vs Run2 vs Run3
-│   │   │   # coverage diff + finding diff
 │   │   └── miss_analysis.py
-│   │       # why did the agent miss it?
-│   │       # → methodology improvement
 │   │
 │   ├── retrieval/
 │   │   └── README.md
-│   │       # points to ROOT retrieval system.
-│   │       # no second retrieval backend.
+│   │      # References root retrieval layer.
 │   │
 │   ├── research/
-│   │   │
 │   │   ├── graph/
 │   │   │   └── TODO.md
-│   │   │      # Knowledge Graph = open research area.
-│   │   │      # No implementation assumed.
+│   │   │      # Knowledge graph research only.
 │   │   │
 │   │   └── scoring/
 │   │       └── TODO.md
-│   │          # Future scoring/learning signals research.
-│   │          # Not core infrastructure yet.
+│   │          # Future scoring research.
 │   │
 │   ├── scripts/
 │   │   └── audit_learning_engine.py
@@ -280,69 +290,58 @@ hunting/
 │
 │
 ├── retrieval/
-│   # SINGLE source of truth for knowledge retrieval.
+│   # Single source of truth for knowledge retrieval.
 │   │
 │   ├── search/
-│   │   # keyword / metadata / future semantic retrieval
-│   │
 │   ├── metadata/
-│   │   # tags / provenance / quality / confidence
-│   │
 │   └── index/
-│       # indexes
 │
 │
 ├── runtime/
 │   │
 │   ├── registry.json
-│   │   # mapping:
-│   │   # skills / commands / agents / aliases / execution routes
+│   │   # Skills / commands / agents /
+│   │   # detectors / execution routes
 │   │
 │   ├── tool-manifest.md
-│   │   # لكل tool:
-│   │   # purpose / inputs / outputs / limits / correct usage
-│   │   # + forbidden or invalid usage patterns
+│   │   # Tool:
+│   │   # purpose / inputs / outputs / limits /
+│   │   # correct use / forbidden use /
+│   │   # optional vs mandatory
+│   │   #
+│   │   # Gated Tools:
+│   │   # optional missing → skip + record + continue
+│   │   # mandatory missing → blocked/precondition
 │   │
 │   ├── model-routing.md
-│   │   # SINGLE source of truth for model selection/routing
+│   │   # Single source of truth for model routing
 │   │
 │   ├── redaction.md
-│   │   # local redaction → external model → local restoration
+│   │   # Local redaction → external model →
+│   │   # local restoration
 │   │
 │   └── opencode/
 │       ├── loader.md
-│       │   # workspace/bootstrap loading rules
-│       │
 │       ├── ORCHESTRATION.md
-│       │   # coordinator → objective → execution
-│       │
 │       └── manifest.md
-│           # OpenCode capabilities
 │
 │
 ├── scripts/
 │   │
 │   ├── update.sh
-│   │   # state / briefing / index refresh
+│   │   # state / indexes / briefing refresh
+│   │   # + memory maintenance / GC
 │   │
 │   ├── runtime_preflight.py
-│   │   # scope + tools + MCP + workspace readiness
-│   │   # no execution when scope/preflight fails
+│   │   # Scope + tools + MCP + workspace checks
 │   │
 │   ├── skill_registry.py
-│   │   # scenario → candidate skills / routing
+│   │   # Scenario → skills / routing
 │   │
 │   ├── fetch/
-│   │   # source fetching
-│   │
 │   ├── process/
-│   │   # normalization + extraction
-│   │
 │   ├── index/
-│   │   # index build/update
-│   │
 │   ├── learn/
-│   │   # learning pipeline execution
 │   │
 │   ├── test_skill_registry.py
 │   └── test_runtime_contract.py
@@ -351,17 +350,24 @@ hunting/
 ├── templates/
 │   │
 │   ├── ledger.md
+│   │   # Generic reusable ledger template
+│   │
 │   ├── notes-funnel.md
-│   │   # Notes → Leads → Hypotheses → Findings
+│   │   # NOTES → LEADS → PRIMITIVES →
+│   │   # FINDINGS → REPORTS
+│   │
 │   ├── coverage-map.md
-│   │   # Endpoint × Parameter × Vuln Class × Auth Context
+│   │   # Endpoint × Param × Vuln Class × Auth Context
+│   │
 │   ├── target-config.md
 │   ├── hypothesis.md
 │   ├── finding.md
 │   ├── run-report.md
-│   │   # what was tried / worked / failed / skipped
+│   │   # tried / worked / failed / skipped
+│   │
 │   └── prompts/
-│       # Prompt library
+│       └── vulnerability-skill-template.md
+│           # Canonical schema for vulnerability Skills
 │
 │
 ├── testing/
@@ -371,28 +377,23 @@ hunting/
 │       │   # Human-defined scope lock
 │       │
 │       ├── agent-briefing.md
-│       │   # what we know / where we stopped
+│       │   # Current known state / stopping point
 │       │
 │       ├── target-config.md
-│       │   # technology / accounts / environment
 │       │
 │       ├── ledger.md
-│       │   # canonical target ledger
+│       │   # Canonical target ledger
 │       │
 │       ├── notes-funnel.md
-│       │
 │       ├── coverage-map.md
-│       │   # endpoint × param × vuln class × auth context
 │       │
 │       ├── identities/
 │       │   ├── anonymous.md
 │       │   ├── user-a.md
 │       │   ├── user-b.md
 │       │   └── admin.md
-│       │   # identity / privileges / auth path / relevant sessions
 │       │
 │       ├── research/
-│       │   # Program Knowledge Pack
 │       │   ├── reports/
 │       │   ├── writeups/
 │       │   ├── technologies.md
@@ -400,55 +401,27 @@ hunting/
 │       │   └── business.md
 │       │
 │       ├── recon/
-│       │   # assets / DNS / HTTP / ports / snapshots
-│       │
 │       ├── app-map/
-│       │   # features / endpoints / JS / Swagger /
-│       │   # workflows / trust boundaries
-│       │
 │       ├── endpoints/
-│       │   # Host + Scheme + Path + Method +
-│       │   # Params + Auth + Source + Status
-│       │
 │       ├── urls/
 │       ├── subdomains/
 │       │
 │       ├── runs/
-│       │   # Non-determinism home
-│       │   │
 │       │   ├── run-001/
 │       │   │   ├── run-report.md
 │       │   │   └── coverage-snapshot.md
-│       │   │
 │       │   ├── run-002/
-│       │   │   └── ...
-│       │   │
 │       │   ├── run-003/
-│       │   │   └── ...
-│       │   │
 │       │   └── comparison.md
-│       │       # coverage differences + findings + misses
 │       │
 │       ├── oob/
-│       │   # async callback infrastructure
-│       │   │
 │       │   ├── callbacks/
-│       │   │   # callback artifacts with correlation identifiers
-│       │   │
 │       │   └── correlation.md
-│       │       # callback ↔ request ↔ payload ↔ iteration/solver
 │       │
 │       ├── regression/
-│       │   # target-level regression lifecycle
-│       │   │
 │       │   ├── registry.md
-│       │   │   # findings/fixes that need retesting
-│       │   │
 │       │   ├── schedules.md
-│       │   │   # when/what should be checked
-│       │   │
 │       │   └── history/
-│       │       # regression runs + bypass attempts
 │       │
 │       ├── requests/
 │       ├── responses/
@@ -462,241 +435,222 @@ hunting/
 │       └── findings/
 │           └── <finding-id>/
 │               ├── candidate.md
-│               │   # initial hypothesis
-│               │
 │               ├── validation-report.md
-│               │   # validation evidence / FP analysis
-│               │
 │               ├── finding.md
-│               │   # confirmed finding
-│               │
 │               ├── finding.json
-│               │   # structured representation
-│               │
 │               ├── poc/
-│               │   # reproducible proof artifacts
-│               │
 │               └── regression.md
-│                   # finding-specific regression history
 │
 │
 ├── wordlists/
-│   # Global reusable wordlists
 │
 ├── logs/
-│   # runtime / session / execution logs
-│
 │
 ├── architecture/
 │   │
 │   ├── agent-architecture-rules.md
-│   │   # coordinator / worker / detector boundaries
-│   │   # + v6 design rules
+│   │   # Model / Agent / Skill / Command /
+│   │   # Coordinator / Solver / Detector boundaries
 │   │
 │   ├── file-contracts.md
-│   │   # artifact ownership and allowed contents
+│   │   # Ownership / lifecycle / allowed contents
 │   │
 │   ├── knowledge-flow.md
-│   │   # Source → Extraction → Synthesis → Concepts → Retrieval
+│   │   # Source → Extraction → Concepts →
+│   │   # Retrieval → Skills
 │   │
 │   ├── learning-flow.md
-│   │   # Finding / FP / Miss → Lesson → Memory → Methodology
+│   │   # Finding / FP / Miss / Run →
+│   │   # Lesson → Memory → Methodology improvement
 │   │
 │   ├── validation-model.md
-│   │   # Candidate → Proof → FP Gate → Validator → Human
+│   │   # Candidate → Proof → 7-question gate →
+│   │   # Validator → Human
+│   │   #
+│   │   # 7 questions:
+│   │   # 1. Scope
+│   │   # 2. Reproducibility
+│   │   # 3. Authorization Context
+│   │   # 4. Security Boundary
+│   │   # 5. Evidence
+│   │   # 6. Alternative Explanation
+│   │   # 7. Impact
 │   │
 │   ├── model-routing.md
-│   │   # reference only:
-│   │   # canonical rules live in runtime/model-routing.md
+│   │   # Reference only.
+│   │   # Canonical routing lives in runtime/model-routing.md
 │   │
 │   └── agent-security.md
-│       # prompt injection / indirect injection /
-│       # tool poisoning / MCP trust / response attacks /
+│       # Prompt injection /
+│       # indirect injection /
+│       # tool poisoning /
+│       # MCP trust /
+│       # response attacks /
 │       # secret exposure
 │
 │
 └── .github/
     └── workflows/
-        # CI:
-        # contracts / schema validation /
-        # skill registry / learning engine
 ```
 
-## 🔗 الـ System Relationships
+# الحاجات الجديدة اللي اتثبتت في النسخة دي
+
+### 1. Commands جديدة
 
 ```text
-                         HUMAN
-                           │
-                           ▼
-                    PROGRAM RESEARCH
-                           │
-                           ▼
-                       SCOPE LOCK
-                           │
-                           ▼
-                     TARGET STATE
-                           │
-             ┌─────────────┴─────────────┐
-             ▼                           ▼
-         AUTOMATION                    RECON
-         MONITORING                      │
-             │                           │
-             └─────────────┬─────────────┘
-                           ▼
-                        APP MAP
-                           │
-                           ▼
-                     COVERAGE MAP
-                           │
-                           ▼
-                      COORDINATOR
-                           │
-                  focused objective
-                           │
-             ┌─────────────┼─────────────┐
-             ▼             ▼             ▼
-         DETECTOR       GENERATIVE    SPECIALIZED
-                           AGENT        WORKFLOW
-             │             │             │
-             └─────────────┼─────────────┘
-                           ▼
-                         SKILLS
-                           │
-                           ▼
-                        RUNTIME
-                 ┌─────────┼─────────┐
-                 ▼         ▼         ▼
-                BURP     BROWSER    CLI/OOB
-                 │         │         │
-                 └─────────┼─────────┘
-                           ▼
-                      OBSERVATIONS
-                           │
-                  KNOW / PROVE / SUGGEST
-                           │
-                           ▼
-                       PROOF GATE
-                           │
-                           ▼
-                    FALSE POSITIVE GATE
-                           │
-                           ▼
-                        VALIDATOR
-                           │
-                           ▼
-                          HUMAN
-                           │
-                  ┌────────┴────────┐
-                  ▼                 ▼
-               FINDING           REJECTED
-                  │
-                  ▼
-                REPORT
-                  │
-                  ▼
-             REGRESSION
-                  │
-                  ▼
-               LEARNING
-                  │
-          ┌───────┴────────┐
-          ▼                ▼
-       MEMORY          CONCEPTS
-          │                │
-          └───────┬────────┘
-                  ▼
-              RETRIEVAL
-                  │
-                  └──────────→ NEXT OBJECTIVE
+scope-check
+triage
+pickup
 ```
 
-## 🧩 الـ Architectural Separation النهائي
+دي بقت **جزء رسمي من architecture**، مش اقتراح جانبي.
+
+### 2. Validation Gate
+
+الـ `7-question gate` بقى جزء رسمي من:
 
 ```text
-AGENTS.md
-    = Constitution
+architecture/validation-model.md
+```
 
-.opencode/
-    = OpenCode operational layer
+وليس مجرد فكرة داخل الـ Validator.
 
-knowledge/
-    = External raw knowledge
+### 3. Gated Tools
 
-knowledge/processed/
-    = Extracted structured source knowledge
+بقى جزء رسمي من:
 
-concepts/
-    = Synthesized reusable knowledge
+```text
+runtime/tool-manifest.md
+```
 
+القاعدة:
+
+```text
+Optional tool missing
+→ skip
+→ record
+→ continue
+
+Mandatory tool missing
+→ blocked
+→ record
+```
+
+### 4. Memory GC
+
+مش subsystem جديد.
+
+يعيش داخل:
+
+```text
+scripts/update.sh
+```
+
+والـ policy تتكتب في:
+
+```text
 memory/
-    = Lessons learned from OUR hunting
-
-retrieval/
-    = Knowledge retrieval interface
-
-testing/<target>/
-    = Persistent target state
-
-automation/
-    = Scheduled observation / change detection
-
-runtime/
-    = Execution + tools + models
-
-learning_engine/
-    = Learning from sources + runs + findings
-
-architecture/
-    = Contracts + system rules
 ```
 
-## 🚫 حاجات مش جزء من الـ Core
+عند الحاجة.
+
+### 5. Vulnerability Skill Template
+
+أضفناه رسميًا هنا:
 
 ```text
-❌ Fine-tuning كشرط
-❌ Agent لكل vulnerability
-❌ تحميل كل الـ skills والـ knowledge مرة واحدة
-❌ Autonomous forever hunting
-❌ 23 subagents
-❌ Raw writeups كـ training data
-❌ اعتبار LLM confidence دليلًا
-❌ Knowledge graph implementation حاليًا
-❌ Scoring engine مفروض من البداية
-❌ Auto-scan لكل asset جديد كـ default
-❌ VPS/Telegram كـ core requirement
+templates/prompts/vulnerability-skill-template.md
 ```
 
-## 🎯 القاعدة الذهبية للنظام
+وده مهم جدًا عشان `access-control` و`xss` وأي Skills مستقبلية تتبني من **نفس schema**، بدل كل Skill تخترع شكلها الخاص.
+
+### 6. Detector
+
+**لم نضف له folder مستقل.**
+
+الـ Detector مفهوم runtime capability:
 
 ```text
-AI generates hypotheses.
-Runtime generates observations.
-Proof produces evidence.
-Validator attacks the claim.
-Human makes the final judgment.
-Memory learns from what actually happened.
+Skill
+↓
+Detector
+↓
+Runtime
+↓
+Evidence
 ```
 
-والـ **single source of truth** للحاجات اللي كانت متكررة محسوم كده:
+وممكن implementation بتاعه يعيش في `scripts/` أو ضمن target-specific scripts حسب نوعه.
+
+### 7. Coordinator / Solver
+
+مفيش `coordinator-agent.md` أو `solver-agent.md` مفروضين في الـ tree.
+
+الـ Coordinator = **orchestration role**.
+
+والـ Solver = **isolated/ephemeral execution context لما يكون مبرر**.
+
+وده يحافظ على مبدأ:
 
 ```text
-Model Routing
-    → runtime/model-routing.md
-
-Retrieval
-    → retrieval/
-
-Knowledge Graph
-    → learning_engine/research/graph/TODO.md
-
-Scoring
-    → learning_engine/research/scoring/TODO.md
-
-Target State
-    → testing/<root-domain>/
-
-Actual Hunt Lessons
-    → memory/
+Few agents, many skills
 ```
 
-دي النسخة النهائية التي نعتمدها. والنسخة الأصلية المرفوعة أكدت صراحة إضافة `automation`، `runs`، `oob`، `regression`، وفصل `identities` عن `session-search`، وإزالة الـ graph implementation المبكر، وتوحيد retrieval وmodel-routing. 
+---
+
+# 🔒 حاجات اتقفلت نهائيًا
+
+```text
+Project name        = Buggy
+GitHub              = bugMO77/buggy
+Local               = ~/buggy
+
+Target               = Web + HTTP APIs
+Primary proxy        = Burp + Burp MCP
+Browser              = Playwright/Chromium
+OOB                  = interactsh
+
+Initial vuln skills  = Access Control + XSS
+
+Research Mode        = Core workflow
+Human review         = Mandatory
+LLM confidence       ≠ proof
+
+Knowledge:
+writeups
+reports
+blogs
+tips-tricks
+research
+docs
+processed
+
+NO:
+posts
+podcasts
+videos
+```
+
+والـ three ledgers تفضل منفصلة:
+
+```text
+templates/ledger.md
+testing/<target>/ledger.md
+memory/CONTEXT_LEDGER.md
+```
+
+وده متسق مع الفصل الموجود أصلًا في الـ blueprint بين target state وmemory. نص واحد ملصق&#x20; نص واحد ملصق&#x20;
+
+## والأهم جدًا
+
+**الـ tree اللي عندك حاليًا على Kali قريب جدًا من النسخة دي، لكن فيه ملف جديد واحد رسمي دلوقتي مش موجود عندك:**
+
+```text
+templates/prompts/vulnerability-skill-template.md
+```
+
+وباقي الإضافات الجديدة (`scope-check`, `triage`, `pickup`) أنت بالفعل أنشأتها في الـ skeleton.
+
+فـ **ما تغيرش حاجة دلوقتي**. خليك على الشجرة الحالية، ونضيف الملف الجديد فقط لما نبدأ مرحلة الـ templates.
+
+دي من هنا **النسخة canonical اللي نبني عليها الـ Intake والـ Master Builder**.
